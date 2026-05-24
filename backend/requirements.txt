@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+pymongo
+groq
+openai
+arize-otel
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+openinference-instrumentation-openai
