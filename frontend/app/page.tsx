@@ -1,5 +1,4 @@
 "use client"
-const [userId, setUserId] = useState("")
 import { useEffect, useState } from "react"
 import axios from "axios"
 
@@ -15,7 +14,7 @@ type Conversation = {
 }
 
 export default function Home() {
-
+  const [userId, setUserId] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
