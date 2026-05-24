@@ -91,21 +91,24 @@ def chat(req: ChatRequest):
     )
 
     # One trace per conversation
-    with tracer.start_as_current_span(
-        "conversation",
-        attributes={
-            "session_id": session_id,
-            "user_id": req.user_id,
-        }
-    ):
+    current_span = trace.get_current_span()
+    current_span.set_attribute(
+    "session_id",
+      session_id
+)
 
-        response = client.chat.completions.create(
+    current_span.set_attribute(
+      "user_id",
+       req.user_id
+ )
+
+    response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=conversation,
             temperature=0.7,
         )
 
-        answer = response.choices[0].message.content
+    answer = response.choices[0].message.content
 
     messages_collection.insert_one(
         {
