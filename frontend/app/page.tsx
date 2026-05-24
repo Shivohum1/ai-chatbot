@@ -1,5 +1,5 @@
 "use client"
-
+const [userId, setUserId] = useState("")
 import { useEffect, useState } from "react"
 import axios from "axios"
 
@@ -26,19 +26,20 @@ export default function Home() {
   // Load saved chats
   useEffect(() => {
 
-    const saved = localStorage.getItem("conversations")
+  let storedUser = localStorage.getItem("user_id")
 
-    if (saved) {
-      const parsed = JSON.parse(saved)
+  if (!storedUser) {
+    storedUser = crypto.randomUUID()
 
-      setConversations(parsed)
+    localStorage.setItem(
+      "user_id",
+      storedUser
+    )
+  }
 
-      if (parsed.length > 0) {
-        setCurrentConversationId(parsed[0].id)
-      }
-    }
+  setUserId(storedUser)
 
-  }, [])
+}, [])
 
   // Save chats
   useEffect(() => {
@@ -126,6 +127,7 @@ export default function Home() {
         {
           message: currentMessage,
           session_id: currentConversationId,
+          user_id: userId,
         }
       )
 

@@ -14,9 +14,13 @@ from openai import OpenAI
 from database import messages_collection
 
 import telemetry
+
 from opentelemetry import trace
 
 load_dotenv()
+
+# Create tracer
+tracer = trace.get_tracer(__name__)
 
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -41,6 +45,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
+    user_id: str | None = "anonymous"
 
 
 @app.get("/")
@@ -54,9 +59,6 @@ def home():
 def chat(req: ChatRequest):
 
     session_id = req.session_id or str(uuid.uuid4())
-    current_span = trace.get_current_span()
-    if current_span:
-        current_span.set_attribute("session.id", session_id)
 
     old_messages = list(
         messages_collection.find(
@@ -88,13 +90,22 @@ def chat(req: ChatRequest):
         }
     )
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=conversation,
-        temperature=0.7,
-    )
+    # One trace per conversation
+    with tracer.start_as_current_span(
+        "conversation",
+        attributes={
+            "session_id": session_id,
+            "user_id": req.user_id,
+        }
+    ):
 
-    answer = response.choices[0].message.content
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=conversation,
+            temperature=0.7,
+        )
+
+        answer = response.choices[0].message.content
 
     messages_collection.insert_one(
         {
@@ -102,6 +113,7 @@ def chat(req: ChatRequest):
             "role": "user",
             "content": req.message,
             "timestamp": datetime.utcnow(),
+            "user_id": req.user_id,
         }
     )
 
@@ -111,6 +123,7 @@ def chat(req: ChatRequest):
             "role": "assistant",
             "content": answer,
             "timestamp": datetime.utcnow(),
+            "user_id": req.user_id,
         }
     )
 
