@@ -23,7 +23,11 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-app = FastAPI()
+app = FastAPI(
+    title="AI Chatbot API",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 app.add_middleware(
     CORSMiddleware,
