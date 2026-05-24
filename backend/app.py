@@ -16,6 +16,7 @@ from database import messages_collection
 import telemetry
 
 from opentelemetry import trace
+from openinference.semconv.trace import SpanAttributes
 
 load_dotenv()
 
@@ -95,12 +96,12 @@ def chat(req: ChatRequest):
     current_span.set_attribute(
     "session_id",
       session_id
-)
+    )
 
     current_span.set_attribute(
       "user_id",
        req.user_id
- )
+    )
 
     response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
