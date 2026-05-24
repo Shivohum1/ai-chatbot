@@ -122,7 +122,7 @@ export default function Home() {
     try {
 
       const res = await axios.post(
-        "${process.env.NEXT_PUBLIC_API_URL}/chat",
+        `${process.env.NEXT_PUBLIC_API_URL}/chat`,
         {
           message: currentMessage,
           session_id: currentConversationId,
