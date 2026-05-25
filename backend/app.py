@@ -15,13 +15,11 @@ from database import messages_collection
 
 import telemetry
 
-from opentelemetry import trace
-from openinference.semconv.trace import SpanAttributes
+from openinference.instrumentation import using_attributes
 
 load_dotenv()
 
-# Create tracer
-tracer = trace.get_tracer(__name__)
+
 
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -92,22 +90,18 @@ def chat(req: ChatRequest):
     )
 
     # One trace per conversation
-    current_span = trace.get_current_span()
-    current_span.set_attribute(
-    "session_id",
-      session_id
+    with using_attributes(
+    session_id=session_id,
+    user_id=req.user_id,
+   ): 
+
+     response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=conversation,
+        temperature=0.7,
     )
 
-    current_span.set_attribute(
-      "user_id",
-       req.user_id
-    )
-
-    response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=conversation,
-            temperature=0.7,
-        )
+    
 
     answer = response.choices[0].message.content
 
