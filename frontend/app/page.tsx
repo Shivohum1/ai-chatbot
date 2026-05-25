@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useState } from "react"
-import axios from "axios"
 
 type Message = {
   role: "user" | "assistant"
@@ -121,63 +120,108 @@ export default function Home() {
 
     try {
 
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat`,
-        {
-          message: currentMessage,
-          session_id: currentConversationId,
-          user_id: userId,
-        }
-      )
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/chat`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: currentMessage,
+        session_id: currentConversationId,
+        user_id: userId,
+      }),
+    }
+  )
 
-      const botMessage: Message = {
-        role: "assistant",
-        content: res.data.response,
+  const reader = response.body?.getReader()
+
+  if (!reader) return
+
+  const decoder = new TextDecoder()
+
+  let streamedText = ""
+
+  updatedConversations = updatedConversations.map((conv) => {
+
+    if (conv.id === currentConversationId) {
+
+      return {
+        ...conv,
+        messages: [
+          ...currentMessages,
+          {
+            role: "assistant",
+            content: "",
+          },
+        ],
+      }
+    }
+
+    return conv
+  })
+
+  setConversations(updatedConversations)
+
+  while (true) {
+
+    const { done, value } = await reader.read()
+
+    if (done) break
+
+    const chunk = decoder.decode(value)
+
+    streamedText += chunk
+
+    updatedConversations = updatedConversations.map((conv) => {
+
+      if (conv.id === currentConversationId) {
+
+        return {
+          ...conv,
+          messages: [
+            ...currentMessages,
+            {
+              role: "assistant",
+              content: streamedText,
+            },
+          ],
+        }
       }
 
-      updatedConversations = updatedConversations.map((conv) => {
+      return conv
+    })
 
-        if (conv.id === currentConversationId) {
+    setConversations([...updatedConversations])
+  }
 
-          return {
-            ...conv,
-            messages: [
-              ...currentMessages,
-              botMessage,
-            ],
-          }
-        }
+} catch (err) {
 
-        return conv
-      })
+  console.error(err)
 
-      setConversations(updatedConversations)
+  updatedConversations = updatedConversations.map((conv) => {
 
-    } catch (err) {
+    if (conv.id === currentConversationId) {
 
-      console.error(err)
-
-      updatedConversations = updatedConversations.map((conv) => {
-
-        if (conv.id === currentConversationId) {
-
-          return {
-            ...conv,
-            messages: [
-              ...currentMessages,
-              {
-                role: "assistant",
-                content: "Something went wrong.",
-              },
-            ],
-          }
-        }
-
-        return conv
-      })
-
-      setConversations(updatedConversations)
+      return {
+        ...conv,
+        messages: [
+          ...currentMessages,
+          {
+            role: "assistant",
+            content: "Something went wrong.",
+          },
+        ],
+      }
     }
+
+    return conv
+  })
+
+  setConversations(updatedConversations)
+}
+
 
     setLoading(false)
   }
