@@ -65,6 +65,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
+    expose_headers=["X-RAG-Used", "X-RAG-Chunk-Count", "X-RAG-Sources"],
 )
 
 
@@ -77,6 +78,7 @@ def on_startup() -> None:
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_LENGTH)
     session_id: str | None = None
+    use_rag: bool = True
 
 
 class KnowledgeDocument(BaseModel):
@@ -218,8 +220,13 @@ async def chat(
     )
     old_messages.reverse()
 
-    retrieved_chunks = retrieve_context(req.message, RAG_TOP_K, user_id)
+    retrieved_chunks = (
+        retrieve_context(req.message, RAG_TOP_K, user_id) if req.use_rag else []
+    )
     context_block = build_context_block(retrieved_chunks)
+    rag_sources = list(
+        dict.fromkeys(chunk.get("source", "unknown") for chunk in retrieved_chunks)
+    )
 
     conversation: list[dict[str, str]] = [
         {
@@ -297,7 +304,35 @@ async def chat(
     return StreamingResponse(
         generate(),
         media_type="text/plain",
+        headers={
+            "X-RAG-Used": "true" if retrieved_chunks else "false",
+            "X-RAG-Chunk-Count": str(len(retrieved_chunks)),
+            "X-RAG-Sources": ",".join(rag_sources[:5]),
+        },
     )
+
+
+@app.get("/knowledge/status")
+def knowledge_status(auth: AuthContext) -> dict[str, int]:
+    from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+    from config import QDRANT_COLLECTION
+    from qdrant_store import get_qdrant_client
+
+    client = get_qdrant_client()
+    result = client.count(
+        collection_name=QDRANT_COLLECTION,
+        count_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="tenant_id",
+                    match=MatchValue(value=auth["user_id"]),
+                )
+            ]
+        ),
+        exact=True,
+    )
+    return {"chunk_count": result.count}
 
 
 @app.get("/config/vector")
