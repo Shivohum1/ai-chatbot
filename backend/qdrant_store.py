@@ -7,6 +7,7 @@ from qdrant_client.models import (
     FieldCondition,
     Filter,
     MatchValue,
+    PayloadSchemaType,
     PointStruct,
     VectorParams,
 )
@@ -33,11 +34,21 @@ def ensure_collection() -> None:
     client = get_qdrant_client()
     existing = {collection.name for collection in client.get_collections().collections}
     if QDRANT_COLLECTION in existing:
+        client.create_payload_index(
+            collection_name=QDRANT_COLLECTION,
+            field_name="tenant_id",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
         return
 
     client.create_collection(
         collection_name=QDRANT_COLLECTION,
         vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+    )
+    client.create_payload_index(
+        collection_name=QDRANT_COLLECTION,
+        field_name="tenant_id",
+        field_schema=PayloadSchemaType.KEYWORD,
     )
 
 
@@ -73,9 +84,9 @@ def search_chunks(
     tenant_id: str,
 ) -> list[dict[str, Any]]:
     client = get_qdrant_client()
-    results = client.search(
+    results = client.query_points(
         collection_name=QDRANT_COLLECTION,
-        query_vector=query_embedding,
+        query=query_embedding,
         limit=top_k,
         query_filter=Filter(
             must=[
@@ -88,7 +99,7 @@ def search_chunks(
     )
 
     formatted: list[dict[str, Any]] = []
-    for hit in results:
+    for hit in results.points:
         payload = hit.payload or {}
         formatted.append(
             {
