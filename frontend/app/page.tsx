@@ -28,14 +28,23 @@ function apiHeaders(extra?: Record<string, string>): Record<string, string> {
 }
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState("")
-  const [apiKeyInput, setApiKeyInput] = useState("")
+  const [apiKey, setApiKey] = useState(() => getApiKey())
+  const [apiKeyInput, setApiKeyInput] = useState(() => getApiKey())
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
 
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    if (typeof window === "undefined") return []
+    const savedConvs = localStorage.getItem("conversations")
+    if (!savedConvs) return []
+    try {
+      return JSON.parse(savedConvs) as Conversation[]
+    } catch {
+      return []
+    }
+  })
   const [currentConversationId, setCurrentConversationId] =
     useState<string | null>(null)
 
@@ -45,22 +54,6 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Load saved state from localStorage
-  useEffect(() => {
-    const storedKey = localStorage.getItem("api_key") ?? ""
-    setApiKey(storedKey)
-    setApiKeyInput(storedKey)
-
-    const savedConvs = localStorage.getItem("conversations")
-    if (savedConvs) {
-      try {
-        setConversations(JSON.parse(savedConvs))
-      } catch {
-        // ignore corrupt data
-      }
-    }
-  }, [])
 
   // Persist conversations
   useEffect(() => {
