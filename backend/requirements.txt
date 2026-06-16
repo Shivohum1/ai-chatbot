@@ -8,3 +8,4 @@ arize-otel
 opentelemetry-sdk
 opentelemetry-exporter-otlp
 openinference-instrumentation-openai
+sentence-transformers
