@@ -9,3 +9,6 @@ opentelemetry-sdk
 opentelemetry-exporter-otlp
 openinference-instrumentation-openai
 sentence-transformers
+qdrant-client
+pypdf
+slowapi

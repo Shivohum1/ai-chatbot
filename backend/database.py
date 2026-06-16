@@ -7,7 +7,8 @@ client = MongoClient(os.getenv("MONGODB_URI"))
 DB = client["chatbot"]
 
 messages_collection = DB["messages"]
-knowledge_chunks_collection = DB["knowledge_chunks"]
+api_keys_collection = DB["api_keys"]
 
-messages_collection.create_index([("session_id", 1), ("timestamp", 1)])
-knowledge_chunks_collection.create_index([("source", 1), ("chunk_index", 1)])
+messages_collection.create_index([("user_id", 1), ("session_id", 1), ("timestamp", 1)])
+api_keys_collection.create_index([("key_hash", 1)], unique=True)
+api_keys_collection.create_index([("user_id", 1)])
