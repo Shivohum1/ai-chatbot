@@ -1,6 +1,6 @@
-# Arizee Chatbot
+# KnowledgeFlow AI — Embedding‑powered Conversational AI (Arize‑monitored)
 
-This repository contains a full-stack chatbot application using a Python backend and a Next.js frontend. It includes components for ingestion, embeddings, and a RAG-based retrieval system.
+This repository contains a full-stack conversational AI application using a Python backend and a Next.js frontend. It includes components for ingestion, embeddings, vector search, retrieval-augmented workflows, and evaluation via Arize.
 
 ## Project structure
 
